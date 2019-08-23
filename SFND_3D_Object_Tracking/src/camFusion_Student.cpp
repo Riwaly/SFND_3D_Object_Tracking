@@ -29,8 +29,8 @@ void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<Li
         // project Lidar point into camera
         Y = P_rect_xx * R_rect_xx * RT * X;
         cv::Point pt;
-        pt.x = Y.at<double>(0, 0) / Y.at<double>(0, 2); // pixel coordinates
-        pt.y = Y.at<double>(1, 0) / Y.at<double>(0, 2);
+        pt.x = Y.at<double>(0, 0) / Y.at<double>(2, 0); // pixel coordinates
+        pt.y = Y.at<double>(1, 0) / Y.at<double>(2, 0);
 
         vector<vector<BoundingBox>::iterator> enclosingBoxes; // pointers to all bounding boxes which enclose the current Lidar point
         for (vector<BoundingBox>::iterator it2 = boundingBoxes.begin(); it2 != boundingBoxes.end(); ++it2)
@@ -104,9 +104,9 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
         // augment object with some key data
         char str1[200], str2[200];
         sprintf(str1, "id=%d, #pts=%d", it1->boxID, (int)it1->lidarPoints.size());
-        putText(topviewImg, str1, cv::Point2f(left-250, bottom+50), cv::FONT_ITALIC, 2, currColor);
+        putText(topviewImg, str1, cv::Point2f(left-150, bottom+50), cv::FONT_ITALIC, 0.8, currColor);
         sprintf(str2, "xmin=%2.2f m, yw=%2.2f m", xwmin, ywmax-ywmin);
-        putText(topviewImg, str2, cv::Point2f(left-250, bottom+125), cv::FONT_ITALIC, 2, currColor);  
+        putText(topviewImg, str2, cv::Point2f(left-150, bottom+125), cv::FONT_ITALIC, 0.8, currColor);  
     }
 
     // plot distance markers
@@ -125,6 +125,7 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 
     if(bWait)
     {
+		cout << "Waiting for key press..." << endl;
         cv::waitKey(0); // wait for key to be pressed
     }
 }
@@ -155,4 +156,25 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
     // ...
+
+	for (auto match : matches) {
+		cv::KeyPoint kPtsCurr = currFrame.keypoints[match.queryIdx];
+		cv::KeyPoint kPtsPrev = prevFrame.keypoints[match.trainIdx];
+
+		for(auto it = currFrame.boundingBoxes.begin() ; it != currFrame.boundingBoxes.end(); ++it){
+			if (true == it->roi.contains(kPtsCurr.pt)) { // if the keypoint is in this bb, then store the bb id and exit
+				int currBbId = it->boxID;
+				it->keypoints.push_back(kPtsCurr);
+				break;
+			}
+		}
+
+		for (auto bb : prevFrame.boundingBoxes) {
+			if (0) { // if the keypoint is in this bb, then store the bb id and exit
+				int prevBbId = bb.boxID;
+				break;
+			}
+		}
+
+	}
 }
